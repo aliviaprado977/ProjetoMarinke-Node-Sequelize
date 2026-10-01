@@ -1,0 +1,7 @@
+node_modules/
+coverage/
+.nyc_output/
+database.sqlite
+database.sqlite-shm
+database.sqlite-wal
+.env

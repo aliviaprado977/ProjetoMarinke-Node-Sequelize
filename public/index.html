@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Produtos</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+
+    button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Cadastro de Produtos</h1>
+
+  <form id="form">
+
+    <input
+      id="nome"
+      placeholder="Nome"
+      required
+    >
+
+    <input
+      id="preco"
+      type="number"
+      min="0"
+      step="0.01"
+      placeholder="Preço"
+      required
+    >
+
+    <button type="submit" id="botaoSalvar">
+      Cadastrar
+    </button>
+
+    <button
+      type="button"
+      id="botaoCancelar"
+      style="display: none;"
+      onclick="cancelarEdicao()"
+    >
+      Cancelar
+    </button>
+
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nome</th>
+        <th>Preço</th>
+        <th>Ação</th>
+      </tr>
+    </thead>
+
+    <tbody id="lista"></tbody>
+  </table>
+
+  <script>
+
+    let produtoEditando = null;
+
+    async function carregar() {
+
+      const resposta = await fetch('/produtos');
+      const produtos = await resposta.json();
+
+      lista.innerHTML = produtos.map(p => `
+        <tr>
+          <td>${p.id}</td>
+
+          <td>${p.nome}</td>
+
+          <td>
+            R$ ${Number(p.preco).toFixed(2)}
+          </td>
+
+          <td>
+            <button onclick="editar(${p.id})">
+              Editar
+            </button>
+
+            <button onclick="excluir(${p.id})">
+              Excluir
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+
+    form.addEventListener('submit', async e => {
+
+      e.preventDefault();
+
+      const dados = {
+        nome: nome.value,
+        preco: Number(preco.value)
+      };
+
+      if (produtoEditando) {
+
+        await fetch('/produtos/' + produtoEditando, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(dados)
+        });
+
+        produtoEditando = null;
+
+        botaoSalvar.textContent = 'Cadastrar';
+
+        botaoCancelar.style.display = 'none';
+
+      } else {
+
+        await fetch('/produtos', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(dados)
+        });
+
+      }
+
+      form.reset();
+
+      carregar();
+    });
+
+
+    async function editar(id) {
+
+      const resposta = await fetch('/produtos/' + id);
+
+      const produto = await resposta.json();
+
+      nome.value = produto.nome;
+
+      preco.value = produto.preco;
+
+      produtoEditando = id;
+
+      botaoSalvar.textContent = 'Salvar alteração';
+
+      botaoCancelar.style.display = 'inline-block';
+    }
+
+
+    function cancelarEdicao() {
+
+      produtoEditando = null;
+
+      form.reset();
+
+      botaoSalvar.textContent = 'Cadastrar';
+
+      botaoCancelar.style.display = 'none';
+    }
+
+
+    async function excluir(id) {
+
+      await fetch('/produtos/' + id, {
+        method: 'DELETE'
+      });
+
+      carregar();
+    }
+
+
+    carregar();
+
+  </script>
+
+</body>
+</html>
